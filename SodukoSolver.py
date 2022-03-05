@@ -4,8 +4,9 @@ from math import floor
 
 
 class Solution(object):
-    
+    complete = {"1","2","3","4","5","6","7","8","9"}
     backtracks =0
+    
     def solveSudoku(self, board):
         """
         :type board: List[List[str]]
@@ -67,7 +68,7 @@ class Solution(object):
                     if not checkRow(i,j,value,map) or not checkCol(i,j,value,map)  or not checkBox(i,j,value,map):
                         return False 
             return True
-    
+
         def findNextCelltoFill(board):
             for i in range(9):
                 for j in range(9):
@@ -75,42 +76,118 @@ class Solution(object):
                         return i , j
             return -1 , -1    
         
+        def getBox(boxNumber):
+            boxIndexes=[]
+            colAdd=0
+            rowAdd=0
+            if(boxNumber in {1,4,7}):
+                colAdd = 3
+            if(boxNumber in {2,5,8}):
+                colAdd = 6    
+            if(boxNumber in {3,4,5}):
+                rowAdd = 3
+            if(boxNumber in {6,7,8}):
+                rowAdd = 6
+            for i in range (3):
+                for j in range (3):                    
+                    boxIndexes.append((i+rowAdd,j+colAdd))
+            return boxIndexes
+        
+        def makeImplications(board):
+            impl = []
+            changed = True
+            # while changes are available
+            while changed:
+                changed = False
+                # for each box
+                for i in range(9):
+                    # get box Indexes
+                    box = getBox(i)
+                    
+                    # initialize box values
+                    missingBoxValues = self.complete.copy()
+                    # contains info for each index in box
+                    boxInfo = []
+                    # find missing box values and 
+                    for index in box:
+                        i,j = index
+                        value = board [i][j]
+                        if value != ".":
+                            missingBoxValues.remove(value)
+                    # save copy missing values for each empy index in box
+                    for index in box:
+                        i,j = index
+                        value = board [i][j]
+                        if value == ".":
+                            boxInfo.append((i,j,missingBoxValues.copy()))
+                    
+                    for element in boxInfo:
+                        left = set()
+                        # get row numbers
+                        row = element[0]
+                        rowValues = set()
+                        for value in  board[row]:
+                            if value != '.':
+                                rowValues.add(value)
+                        left = element[2].difference(rowValues)
+                        
+                        # get col numbers
+                        col = element[1]
+                        colValues = set()
+                        for i in  range(9):
+                            value = board[i][col]
+                            if value != '.':
+                                colValues.add(value)
+                        left = element[2].difference(colValues)
+                                                
+                        # check if left is singleton
+                        if len(left)== 1:
+                            val = left.pop()
+                            board[row][col] = str(val)
+                            if isValidSudoku(board):
+                                impl.append((row,col,val))
+                                changed = True
+                            else:
+                                board[row][col] = "."
+                                        
+            return impl
+        
+        def undoImplications(board, impl):
+            for element in impl:
+                i,j=element[0],element[1]
+                board[i][j] = "."
+            return
         
         def solve(board,i,j):
-        
             i,j = findNextCelltoFill(board)
             
             if i == -1:
                 return True
             
             for value in range(1,10):
-                board[i][j] = value
+                board[i][j] = str(value)
+                # impl = []
                 if isValidSudoku(board):
+                    impl = makeImplications(board)
+                    
                     if solve(board,i,j):
                         return True
                 # undo
-                self.backtracks+=1
-                board[i][j] = '.'
+                    self.backtracks+=1
+                    undoImplications(board,impl)
+                board[i][j] = "."
             
             return False
             
-        return solve(board,0,0)
+        solve(board,0,0)
+        return self.backtracks
 def main():
-    board = [["5","3",".",".","7",".",".",".","."],
-            ["6",".",".","1","9","5",".",".","."],
-            [".","9","8",".",".",".",".","6","."],
-            ["8",".",".",".","6",".",".",".","3"],
-            ["4",".",".","8",".","3",".",".","1"],
-            ["7",".",".",".","2",".",".",".","6"],
-            [".","6",".",".",".",".","2","8","."],
-            [".",".",".","4","1","9",".",".","5"],
-            [".",".",".",".","8",".",".","7","9"]]
+    board = [[".",".","9","7","4","8",".",".","."],["7",".",".",".",".",".",".",".","."],[".","2",".","1",".","9",".",".","."],[".",".","7",".",".",".","2","4","."],[".","6","4",".","1",".","5","9","."],[".","9","8",".",".",".","3",".","."],[".",".",".","8",".","3",".","2","."],[".",".",".",".",".",".",".",".","6"],[".",".",".","2","7","5","9",".","."]]
     object = Solution()
     
     print (object.solveSudoku(board))
     for row in board:
-        print ( row)
-    
+            print ( row)  
 
 if __name__ == "__main__":
     main() 
